@@ -56,12 +56,8 @@ export default withSentryConfig(nextConfig, {
   // Suppress source map upload warnings
   silent: true,
   
-  // Upload source maps for better error tracking
-  widenClientFileUpload: true,
-  
-  // Hide source maps from client
-  hideSourceMaps: true,
-  
-  // Disable logger to reduce bundle size
-  disableLogger: true,
+  // Configure source maps
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
 });
