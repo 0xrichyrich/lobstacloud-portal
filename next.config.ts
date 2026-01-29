@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const securityHeaders = [
   {
@@ -47,4 +48,20 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Sentry options
+  org: process.env.SENTRY_ORG,
+  project: "lobstacloud-portal",
+  
+  // Suppress source map upload warnings
+  silent: true,
+  
+  // Upload source maps for better error tracking
+  widenClientFileUpload: true,
+  
+  // Hide source maps from client
+  hideSourceMaps: true,
+  
+  // Disable logger to reduce bundle size
+  disableLogger: true,
+});
