@@ -68,7 +68,7 @@ export async function setSessionCookie(token: string) {
   cookieStore.set('lobsta-session', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict', // M-4 fix: strict instead of lax for better CSRF protection
     maxAge: 7 * 24 * 60 * 60, // 7 days
     path: '/',
   });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createMagicLinkToken } from '@/lib/auth';
+import { getTokenStore } from '@/lib/tokenStore';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
+      );
+    }
+
+    // L-5 fix: Rate limit magic link requests (max 3 per hour per email)
+    const tokenStore = getTokenStore();
+    const normalizedEmail = email.toLowerCase().trim();
+    const { allowed, remaining } = await tokenStore.checkRateLimit(
+      `magic:${normalizedEmail}`,
+      3,  // max 3 requests
+      60 * 60  // per hour (3600 seconds)
+    );
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many magic link requests. Please try again later.' },
+        { status: 429 }
       );
     }
 

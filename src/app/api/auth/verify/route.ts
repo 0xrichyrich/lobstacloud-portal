@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyMagicLinkToken, createToken, setSessionCookie } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { getTokenStore } from '@/lib/tokenStore';
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');
@@ -10,12 +11,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // M-1 fix: Check if token has already been used (one-time magic links)
+    const tokenStore = getTokenStore();
+    const isUsed = await tokenStore.isTokenUsed(token);
+    
+    if (isUsed) {
+      console.warn('Magic link token already used');
+      return NextResponse.redirect(new URL('/login?error=token_expired', request.url));
+    }
+
     // Verify the magic link token
     const email = await verifyMagicLinkToken(token);
 
     if (!email) {
       return NextResponse.redirect(new URL('/login?error=invalid_token', request.url));
     }
+
+    // M-1 fix: Mark token as used immediately (15 min TTL to match token expiry)
+    await tokenStore.markTokenUsed(token, 15 * 60);
 
     // Look up the customer by email
     const customerData = await api.getCustomerByEmail(email);
