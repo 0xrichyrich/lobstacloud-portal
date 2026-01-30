@@ -30,8 +30,8 @@ export default function DocsPage() {
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-lobsta-red text-white text-sm flex items-center justify-center font-bold">3</span>
               <div>
-                <strong className="text-white">Set up Clawdbot</strong>
-                <p className="text-sm mt-1">Add your credentials to Clawdbot&apos;s config file.</p>
+                <strong className="text-white">Set up OpenClaw</strong>
+                <p className="text-sm mt-1">Add your credentials to OpenClaw&apos;s config file.</p>
               </div>
             </li>
           </ol>
@@ -43,7 +43,7 @@ export default function DocsPage() {
             ⚙️ Configuration
           </h2>
           <p className="text-lobsta-gray-light mb-4">
-            Add these to your Clawdbot configuration or environment variables:
+            Add these to your OpenClaw configuration or environment variables:
           </p>
           <div className="bg-lobsta-black rounded-lg p-4 border border-lobsta-black-lighter overflow-x-auto">
             <pre className="text-sm">
