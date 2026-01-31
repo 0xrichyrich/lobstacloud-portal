@@ -1,100 +1,99 @@
-import { cookies } from 'next/headers';
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify } from "jose";
+import { cookies } from "next/headers";
+import { getDb } from "./db";
+import crypto from "crypto";
 
-// Fail fast if JWT_SECRET is not configured
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
-}
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "fallback-secret-change-me"
+);
+const COOKIE_NAME = "lobsta_session";
+const SESSION_DURATION = 30 * 24 * 60 * 60; // 30 days in seconds
 
-export interface User {
-  id: string;
+export interface SessionPayload {
   email: string;
-  name?: string;
-  stripeCustomerId?: string;
+  customerIds: string[];
+  exp: number;
 }
 
-export interface Session {
-  user: User;
-  expiresAt: Date;
-}
-
-export async function createToken(user: User): Promise<string> {
-  const token = await new SignJWT({ 
-    sub: user.id,
-    email: user.email,
-    name: user.name,
-    stripeCustomerId: user.stripeCustomerId,
-  })
-    .setProtectedHeader({ alg: 'HS256' })
+export async function createSession(
+  email: string,
+  customerIds: string[]
+): Promise<string> {
+  const token = await new SignJWT({ email, customerIds })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(`${SESSION_DURATION}s`)
     .setIssuedAt()
-    .setExpirationTime('7d')
     .sign(JWT_SECRET);
-  
-  return token;
-}
 
-export async function verifyToken(token: string): Promise<User | null> {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return {
-      id: payload.sub as string,
-      email: payload.email as string,
-      name: payload.name as string | undefined,
-      stripeCustomerId: payload.stripeCustomerId as string | undefined,
-    };
-  } catch {
-    return null;
-  }
-}
-
-export async function getSession(): Promise<Session | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get('lobsta-session')?.value;
-  
-  if (!token) return null;
-  
-  const user = await verifyToken(token);
-  if (!user) return null;
-  
-  return {
-    user,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-  };
-}
-
-export async function setSessionCookie(token: string) {
-  const cookieStore = await cookies();
-  cookieStore.set('lobsta-session', token, {
+  cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict', // M-4 fix: strict instead of lax for better CSRF protection
-    maxAge: 7 * 24 * 60 * 60, // 7 days
-    path: '/',
+    secure: true,
+    sameSite: "lax",
+    maxAge: SESSION_DURATION,
+    path: "/",
   });
-}
 
-export async function clearSession() {
-  const cookieStore = await cookies();
-  cookieStore.delete('lobsta-session');
-}
-
-// Generate a magic link token
-export async function createMagicLinkToken(email: string): Promise<string> {
-  const token = await new SignJWT({ email })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('15m')
-    .sign(JWT_SECRET);
-  
   return token;
 }
 
-export async function verifyMagicLinkToken(token: string): Promise<string | null> {
+export async function getSession(): Promise<SessionPayload | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
+  if (!token) return null;
+
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload.email as string;
+    return payload as unknown as SessionPayload;
   } catch {
     return null;
   }
+}
+
+export async function destroySession() {
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE_NAME);
+}
+
+// Magic link helpers
+export async function createMagicLink(email: string): Promise<string> {
+  const sql = getDb();
+  const token = crypto.randomBytes(32).toString("hex");
+  const id = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+  await sql`
+    INSERT INTO portal_sessions (id, email, token, expires_at)
+    VALUES (${id}, ${email.toLowerCase()}, ${token}, ${expiresAt.toISOString()})
+  `;
+
+  return token;
+}
+
+export async function verifyMagicToken(
+  token: string
+): Promise<{ email: string } | null> {
+  const sql = getDb();
+
+  const rows = await sql`
+    SELECT id, email, expires_at, verified
+    FROM portal_sessions
+    WHERE token = ${token}
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) return null;
+
+  const session = rows[0];
+  if (session.verified) return null;
+  if (new Date(session.expires_at) < new Date()) return null;
+
+  // Mark as verified
+  await sql`
+    UPDATE portal_sessions
+    SET verified = true
+    WHERE id = ${session.id}
+  `;
+
+  return { email: session.email };
 }

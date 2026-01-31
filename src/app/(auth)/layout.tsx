@@ -1,17 +1,23 @@
-import { Suspense } from 'react';
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { Nav } from "@/components/nav";
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin text-4xl">🦞</div>
-      </div>
-    }>
-      {children}
-    </Suspense>
+    <>
+      <Nav email={session.email} />
+      <main className="pt-20 pb-12 px-4 sm:px-6 max-w-6xl mx-auto">
+        {children}
+      </main>
+    </>
   );
 }

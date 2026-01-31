@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { customerId } = await req.json();
+  const { customerId, newPlan } = await req.json();
 
   // Verify the customer ID belongs to this user
   if (!session.customerIds.includes(customerId)) {
@@ -15,17 +15,17 @@ export async function POST(req: NextRequest) {
   }
 
   // Call the LobstaCloud API
-  const res = await fetch("https://api.redlobsta.cloud/stripe/portal", {
+  const res = await fetch("https://api.redlobsta.cloud/stripe/change-plan", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ customerId }),
+    body: JSON.stringify({ customerId, newPlan }),
   });
 
   const data = await res.json();
 
   if (!res.ok) {
     return NextResponse.json(
-      { error: data.error || "Failed to create portal session" },
+      { error: data.error || "Failed to change plan" },
       { status: res.status }
     );
   }
