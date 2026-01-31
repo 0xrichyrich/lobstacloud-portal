@@ -14,6 +14,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // L-1 FIX: Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 }
+      );
+    }
+
     const normalizedEmail = email.toLowerCase().trim();
 
     // Verify this email has at least one Stripe customer account
