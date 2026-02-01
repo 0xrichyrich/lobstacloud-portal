@@ -1,0 +1,57 @@
+name: Claude Code Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are a senior code reviewer for LobstaCloud (RedLobsta Cloud hosting platform).
+            Review this pull request thoroughly. Focus on:
+
+            **Security (HIGH PRIORITY — we run a hosting platform):**
+            - Auth/token handling (Bearer tokens, encryption, timing-safe comparison)
+            - Input validation and sanitization
+            - CORS, CSP, and header security
+            - Cloud-init / server provisioning safety
+            - No secrets in code, logs, or error messages
+
+            **Code Quality:**
+            - Logic errors and edge cases
+            - Error handling (fail gracefully, not silently)
+            - TypeScript type safety
+            - DRY violations and dead code
+
+            **Performance:**
+            - N+1 queries, unnecessary API calls
+            - Memory leaks, unbounded loops
+
+            **Architecture:**
+            - Separation of concerns
+            - API contract consistency
+
+            Be direct and specific. Skip praising obvious things.
+            Flag blockers as 🚨, suggestions as 💡, nits as 📝.
+
+            Use inline comments for specific code issues.
+            Use a single summary PR comment for overall assessment.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(cat:*),Bash(find:*),Bash(grep:*)"
