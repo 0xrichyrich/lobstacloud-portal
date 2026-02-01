@@ -16,20 +16,20 @@ const PLANS = [
   {
     id: "starter",
     name: "Starter",
-    price: 7,
-    specs: "1 vCPU · 2 GB RAM",
+    price: 9.99,
+    specs: "2 vCPU · 4 GB RAM",
   },
   {
     id: "pro",
     name: "Pro",
-    price: 24,
-    specs: "2 vCPU · 4 GB RAM",
+    price: 29.99,
+    specs: "4 vCPU · 8 GB RAM",
   },
   {
     id: "business",
     name: "Business",
-    price: 48,
-    specs: "4 vCPU · 8 GB RAM",
+    price: 99.99,
+    specs: "8 vCPU · 16 GB RAM",
   },
 ];
 

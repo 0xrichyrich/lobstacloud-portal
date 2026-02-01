@@ -39,9 +39,9 @@ function formatStatus(status: string) {
 
 function getPlanDetails(plan: string) {
   const plans: Record<string, { name: string; price: number; specs: string }> = {
-    starter: { name: "Starter", price: 7, specs: "1 vCPU, 2 GB RAM" },
-    pro: { name: "Pro", price: 24, specs: "2 vCPU, 4 GB RAM" },
-    business: { name: "Business", price: 48, specs: "4 vCPU, 8 GB RAM" },
+    starter: { name: "Starter", price: 9.99, specs: "2 vCPU, 4 GB RAM" },
+    pro: { name: "Pro", price: 29.99, specs: "4 vCPU, 8 GB RAM" },
+    business: { name: "Business", price: 99.99, specs: "8 vCPU, 16 GB RAM" },
   };
   return plans[plan] || { name: plan, price: 0, specs: "Unknown" };
 }

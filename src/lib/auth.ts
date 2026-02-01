@@ -10,6 +10,14 @@ const COOKIE_NAME = "lobsta_session";
 // H-6 FIX: Reduced session duration from 30 days to 24 hours
 const SESSION_DURATION = 24 * 60 * 60; // 24 hours in seconds
 
+// M-3 FIX: Warn if Redis is not configured in production
+if (process.env.NODE_ENV === 'production' && !process.env.UPSTASH_REDIS_REST_URL) {
+  console.error('⚠️ SECURITY: UPSTASH_REDIS_REST_URL not set in production. Token blacklisting (logout/revocation) will not work. Set Redis credentials for production deployments.');
+}
+if (process.env.JWT_SECRET === 'fallback-secret-change-me' || !process.env.JWT_SECRET) {
+  console.error('⚠️ SECURITY: JWT_SECRET not set or using fallback. Set a strong random secret for production.');
+}
+
 // H-6 FIX: Token blacklist via Redis for logout/revocation
 async function getRedis(): Promise<{ get: (key: string) => Promise<string | null>; set: (key: string, value: string, opts: { ex: number }) => Promise<void> } | null> {
   const url = process.env.UPSTASH_REDIS_REST_URL;
